@@ -6,3 +6,6 @@ log/*.pid
 Gemfile.lock
 *.gem
 Capfile
+
+
+*.swp

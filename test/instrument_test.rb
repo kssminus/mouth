@@ -76,4 +76,29 @@ class MouthInstrumentTest < Test::Unit::TestCase
     assert m[1].to_i > 180
     assert m[1].to_i < 220
   end
+
+  def test_step
+    Mouth.step("seong",5)
+
+    res = @udp.recvfrom(1024)
+    puts res
+    assert_equal "seong:5|s", res[0]
+  end
+
+  def test_stepup
+    Mouth.stepup("seong")
+
+    res = @udp.recvfrom(1024)
+    puts res
+    assert_equal "seong:1|su", res[0]
+  end
+
+  def test_stepup_delta
+    Mouth.stepup("seong",5)
+
+    res = @udp.recvfrom(1024)
+    puts res
+    assert_equal "seong:5|su", res[0]
+  end
+
 end

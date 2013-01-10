@@ -40,7 +40,8 @@ module Mouth
       @collections ||= {}
       @collections[collection_name] ||= begin
         c = mongo.collection(collection_name)
-        c.ensure_index([["t", 1]], {:background => true, :unique => true})
+        # step_id indexing
+        c.ensure_index([["si", 1]], {:background => true, :unique => true})
         c
       end
     end

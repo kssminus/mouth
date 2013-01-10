@@ -37,6 +37,14 @@ module Mouth
         write(key, value, :g)
       end
 
+      def step(key, value)
+        write(key, value, :s)
+      end
+
+      def stepup(key, delta = 1)
+        write(key, delta, :su)
+      end
+
       protected
 
       def socket

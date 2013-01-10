@@ -65,4 +65,33 @@ class SuckerTest < Test::Unit::TestCase
     r.store!("abc/123.hello/789 foobar.baz:3.7|ms")
     assert_equal ({"abc-123.hello/789_foobar-baz" => [3.7]}), r.timers.values.first
   end
+
+  def test_storing_step
+    r = Mouth::Sucker.new
+    
+    r.store!("default.kss:1|s");
+    assert_equal ({"default.kss" => 1}), r.step.values.first
+  end
+ 
+  def test_storing_stepup
+    r = Mouth::Sucker.new
+    
+    r.store!("default.kss:1|su");
+    assert_equal ({"default.kss" => 1}), r.stepup.values.first
+  end
+
+  def test_counter_working
+    r = Mouth::Sucker.new
+
+    r.store!("default.kss:1|c");
+    puts r.counters.inspect
+    
+    r.store!("default.kss:2|c");
+    puts r.counters.inspect
+
+    r.store!("default.kss:1|c");
+    puts r.counters.inspect
+
+  end
+
 end
