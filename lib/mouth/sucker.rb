@@ -108,51 +108,54 @@ module Mouth
     
     def flush!
       ts = Time.now.to_i
-      limit_ts = ts - 30
-      mongo_docs = []
+      # 5초 전까지 것만 일단 저장한다. 
+      limit_ts = ts - 5
       
-      # We're going to construct mongo_docs which look like this:
-      # "mycollection:stepid": {
+      # "mycollection:step_id": {
       #   t:  23423433,
       #   ms: 6,
       #   cs: 1
       # }
+      #몽고에 저장하는 도중에 들어오는 녀석들 때문에..
+      temp_steps = self.steps.clone 
       
-      self.steps.each do |step_id, step_to_save|
+      temp_steps.each do |step_key, step_to_save|
         if step_to_save["t"] <= limit_ts
+          collection, step_id = step_key.split(":")
           
-          mongo_docs.push({step_id => step_to_save})
-          self.steps.delete(step_id)
+          # collection 이름 살균
+          collection_name = Mouth.mongo_collection_name(collection) 
+          step_to_save["si"] = step_id 
+          
+          #기존에 등록되어 있는것이 있으면 덮어 씌운다.
+          self.mongo.collection(collection_name).update({"si"=>step_id}, step_to_save, { :upsert => true } )
+          
+          self.steps.delete(step_key)
         end
       end
       
-      self.stepping.each do |stepping_id, stepping_to_save|
+      Mouth.logger.info "Saved Steps : #{temp_steps.inspect}" 
+
+      #"mycollectioni:step_id":{ 
+      # "$inc":{ 
+      #         "cs": 3
+      #         } 
+      # }
+      temp_stepping = self.stepping.clone
+      temp_stepping.each do |stepping_key, stepping_to_save|
         if stepping_to_save["t"] <= limit_ts
-          self.stepping.delete(stepping_id)
-          #mongo_docs.push({stepping_id => {"t"=>ts, "cs"=>0}})
-          mongo_docs.push({stepping_id => {"$inc"=>{"cs"=>stepping_to_save["cs"]}}})
-        end
-      end
-      #"mycollection":{ "$inc":{ "cs": 3} }
-      
-      save_documents!(mongo_docs)
-    end
-    
-    def save_documents!(mongo_docs)
-      
-      mongo_docs.each do |doc|
-        doc.each do |key, step|
-          ns, step_id = key.split(":")
-          collection_name = Mouth.mongo_collection_name(ns)
-          #step["si"] = step_id
-          
-          self.mongo.collection(collection_name).update({"si"=>step_id} , step, {:upsert => false})
-          Mouth.logger.info "Saving Doc(si:#{step_id}): #{step.inspect}"
+          collection, step_id = stepping_key.split(":")
+          collection_name = Mouth.mongo_collection_name(collection) # collection 이름 살균
+         
+          #스텝 증가
+          self.mongo.collection(collection_name).update({"si"=>step_id},{"$inc"=> { "cs" => stepping_to_save["cs"]}})
+          self.stepping.delete(stepping_key)
         end
       end
       
+      Mouth.logger.info "Saved Stepping : #{temp_stepping.inspect}" 
       
-      self.mongo_flushes += 1 if mongo_docs.any?
+      self.mongo_flushes += 1
     end
     
     def mongo
